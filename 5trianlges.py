@@ -48,12 +48,15 @@ def top_triangle(T):
 # ==========================================================
 
 LEVELS_PER_STAGE = 2
-NUM_STAGES = 10
+NUM_STAGES = 4
 
 TOTAL_TRIANGLES = LEVELS_PER_STAGE * NUM_STAGES
 
 # slower/smoother zoom
 FRAMES_PER_STAGE = 120
+
+# extra frames to show all triangles together
+FINAL_DISPLAY_FRAMES = 120
 
 # ==========================================================
 # Generate triangles
@@ -87,14 +90,14 @@ fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
 # Draw helper
 # ==========================================================
 
-def draw_triangle(ax, T, number):
+def draw_triangle(ax, T, number, show_text=True):
 
     pts = np.vstack([T, T[0]])
 
     ax.fill(
         pts[:,0],
         pts[:,1],
-        color='yellow', #green
+        color='yellow',
         alpha=0.5
     )
 
@@ -105,18 +108,20 @@ def draw_triangle(ax, T, number):
         linewidth=2
     )
 
-    centroid = np.mean(T, axis=0)
+    if show_text:
 
-    ax.text(
-        centroid[0],
-        centroid[1],
-        str(number),
-        fontsize=15,
-        fontweight='bold',
-        ha='center',
-        va='center',
-        color='black'
-    )
+        centroid = np.mean(T, axis=0)
+
+        ax.text(
+            centroid[0],
+            centroid[1],
+            str(number),
+            fontsize=15,
+            fontweight='bold',
+            ha='center',
+            va='center',
+            color='black'
+        )
 
 # ==========================================================
 # Smooth easing
@@ -155,11 +160,6 @@ for stage in range(1, NUM_STAGES):
     ymin = np.min(Z[:,1])
     ymax = np.max(Z[:,1])
 
-    # ------------------------------------------------------
-    # STRONGER ZOOM
-    # Smaller padding => more zoomed-in
-    # ------------------------------------------------------
-
     padx = 0.25 * (xmax - xmin)
     pady = 0.25 * (ymax - ymin)
 
@@ -172,7 +172,9 @@ for stage in range(1, NUM_STAGES):
 # Animation setup
 # ==========================================================
 
-TOTAL_FRAMES = NUM_STAGES * FRAMES_PER_STAGE
+MAIN_FRAMES = NUM_STAGES * FRAMES_PER_STAGE
+
+TOTAL_FRAMES = MAIN_FRAMES + FINAL_DISPLAY_FRAMES
 
 # ==========================================================
 # Animation function
@@ -181,6 +183,44 @@ TOTAL_FRAMES = NUM_STAGES * FRAMES_PER_STAGE
 def animate(frame):
 
     ax.clear()
+
+    # ======================================================
+    # FINAL STATIC DISPLAY
+    # ======================================================
+
+    if frame >= MAIN_FRAMES:
+
+        ax.fill(
+            outer_pts[:,0],
+            outer_pts[:,1],
+            color='blue',
+            alpha=0.35
+        )
+
+        ax.plot(
+            outer_pts[:,0],
+            outer_pts[:,1],
+            color='blue',
+            linewidth=3
+        )
+
+        for k in range(TOTAL_TRIANGLES):
+
+            draw_triangle(
+                ax,
+                triangles[k],
+                k + 1,
+                show_text=False
+            )
+
+        ax.set_xlim(-0.1, s + 0.1)
+        ax.set_ylim(-0.1, h + 0.1)
+
+        ax.set_aspect('equal')
+
+        ax.axis('off')
+
+        return
 
     # ------------------------------------------------------
     # Current stage
@@ -199,9 +239,6 @@ def animate(frame):
 
     # ------------------------------------------------------
     # PHASES INSIDE EACH STAGE
-    #
-    # First 70%  -> zoom only
-    # Last 30%   -> create new triangles
     # ------------------------------------------------------
 
     zoom_fraction = 0.7
@@ -249,14 +286,6 @@ def animate(frame):
     # ------------------------------------------------------
     # Draw outer triangle
     # ------------------------------------------------------
-    '''
-    ax.plot(
-        outer_pts[:,0],
-        outer_pts[:,1],
-        color='blue',
-        linewidth=3
-    )
-    '''
 
     ax.fill(
         outer_pts[:,0],
@@ -271,6 +300,7 @@ def animate(frame):
         color='blue',
         linewidth=3
     )
+
     # ------------------------------------------------------
     # Determine how many triangles to reveal
     # ------------------------------------------------------
@@ -304,7 +334,8 @@ def animate(frame):
         draw_triangle(
             ax,
             triangles[k],
-            k + 1
+            k + 1,
+            show_text=True
         )
 
     # ------------------------------------------------------
@@ -327,7 +358,7 @@ ani = FuncAnimation(
     animate,
     frames=TOTAL_FRAMES,
     interval=40,
-    repeat=True
+    repeat=False
 )
 
 plt.show()
