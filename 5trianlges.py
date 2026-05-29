@@ -1,3 +1,4 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -48,15 +49,14 @@ def top_triangle(T):
 # ==========================================================
 
 LEVELS_PER_STAGE = 2
-NUM_STAGES = 4
+NUM_STAGES = 10
 
 TOTAL_TRIANGLES = LEVELS_PER_STAGE * NUM_STAGES
 
-# slower/smoother zoom
 FRAMES_PER_STAGE = 120
 
-# extra frames to show all triangles together
-FINAL_DISPLAY_FRAMES = 120
+# zoom-out frames
+FINAL_ZOOMOUT_FRAMES = 180
 
 # ==========================================================
 # Generate triangles
@@ -174,7 +174,7 @@ for stage in range(1, NUM_STAGES):
 
 MAIN_FRAMES = NUM_STAGES * FRAMES_PER_STAGE
 
-TOTAL_FRAMES = MAIN_FRAMES + FINAL_DISPLAY_FRAMES
+TOTAL_FRAMES = MAIN_FRAMES + FINAL_ZOOMOUT_FRAMES
 
 # ==========================================================
 # Animation function
@@ -185,10 +185,28 @@ def animate(frame):
     ax.clear()
 
     # ======================================================
-    # FINAL STATIC DISPLAY
+    # FINAL ZOOM OUT
     # ======================================================
 
     if frame >= MAIN_FRAMES:
+
+        local = frame - MAIN_FRAMES
+
+        t = local / FINAL_ZOOMOUT_FRAMES
+
+        t = smoothstep(t)
+
+        # start from deepest zoom
+        start_xlim, start_ylim = zoom_boxes[-1]
+
+        # end at full triangle
+        end_xlim, end_ylim = zoom_boxes[0]
+
+        xmin = interpolate(start_xlim[0], end_xlim[0], t)
+        xmax = interpolate(start_xlim[1], end_xlim[1], t)
+
+        ymin = interpolate(start_ylim[0], end_ylim[0], t)
+        ymax = interpolate(start_ylim[1], end_ylim[1], t)
 
         ax.fill(
             outer_pts[:,0],
@@ -204,6 +222,7 @@ def animate(frame):
             linewidth=3
         )
 
+        # show ALL triangles without text
         for k in range(TOTAL_TRIANGLES):
 
             draw_triangle(
@@ -213,8 +232,8 @@ def animate(frame):
                 show_text=False
             )
 
-        ax.set_xlim(-0.1, s + 0.1)
-        ax.set_ylim(-0.1, h + 0.1)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
 
         ax.set_aspect('equal')
 
